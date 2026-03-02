@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
+    <!-- iOS & Chrome App Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Yahtzee 2.3">
+    <meta name="apple-mobile-web-app-title" content="Yahtzee">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#2c3e50"> <!-- Colors the Chrome browser UI -->
     
-    <title>Yahtzee 2.3</title>
+    <title>Yahtzee 2.4</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -23,16 +25,23 @@
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         
+        /* BULLETPROOF FULL SCREEN FOR CHROME iOS */
         body, html {
-            /* 100dvh fixes the "7% gap" issue on mobile browsers */
-            height: 100dvh; 
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            width: 100%; height: 100%;
             margin: 0; padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg); 
             overflow: hidden;
+            touch-action: pan-y; /* Prevents whole-page bouncing */
         }
 
-        .screen { display: none; height: 100%; flex-direction: column; }
+        .screen { 
+            display: none; 
+            width: 100%; height: 100%; 
+            flex-direction: column; 
+        }
         .active { display: flex; }
         .hidden { display: none !important; }
 
@@ -46,7 +55,7 @@
             background: white; padding: 25px; border-radius: 16px;
             width: 100%; max-width: 400px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: max(20px, env(safe-area-inset-bottom));
         }
 
         h1, h2 { margin-top: 0; color: var(--primary); }
@@ -92,7 +101,6 @@
         }
         .header-icon-btn:active { background: rgba(255,255,255,0.3); top: 1px; }
 
-        /* Hides FS button if app is installed */
         @media all and (display-mode: standalone) {
             #fs-btn { display: none; }
         }
@@ -100,9 +108,10 @@
         /* --- COMPACT TABLE --- */
         #table-area {
             flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: white;
+            padding-bottom: max(30px, env(safe-area-inset-bottom)); /* Gives clearance at the bottom */
         }
         
-        table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 40px;}
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         
         th {
             background: #f1f2f6; color: #555; text-transform: uppercase;
@@ -194,9 +203,9 @@
     <div id="setup-screen" class="screen active">
         <div class="scroll-area">
             <div class="card">
-                <h1>Yahtzee 2.3</h1>
+                <h1>Yahtzee 2.4</h1>
                 <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">
-                    Tap "Share" > "Add to Home Screen" on iPhone for full screen.
+                    Tip: Tap "Share" > "Add to Home Screen" on iPhone for the best full-screen app experience.
                 </p>
                 <label class="input-label">Players</label>
                 <input type="number" id="num-players" inputmode="numeric" min="1" max="6" value="2">
@@ -220,7 +229,7 @@
                 <button class="btn-gps" onclick="getGPS()" style="margin-bottom:20px;">
                     <span>📍 Use GPS</span>
                 </button>
-                <div id="gps-result" style="display:none;"></div>
+                <div id="gps-result" style="display:none; font-size:0.85rem; margin-bottom:10px;"></div>
 
                 <h2>Initials</h2>
                 <div id="names-container"></div>
@@ -235,7 +244,6 @@
         <div id="game-header">
             <button id="fs-btn" class="header-icon-btn" onclick="handleFullScreenClick()">⛶</button>
             <div id="game-title">YAHTZEE</div>
-            <!-- Finish Button -->
             <button class="header-icon-btn" onclick="openFinishModal()" style="background:var(--green); border-color:var(--green);">✓</button>
         </div>
         
@@ -284,27 +292,20 @@
     </div>
 
 <script>
-    // --- DATA ---
-    let players = [], scores = {}, activePid = null, activeCat = null, buffer = "";
+    let players =[], scores = {}, activePid = null, activeCat = null, buffer = "";
     let gameInfo = { startTime: null, locationName: "", targetEmail: "", coords: null };
 
-    // CATEGORY DEFINITIONS
-    const cats = [
-        // Upper
+    const cats =[
         {id:'ones', name:'Ones', par:3}, 
         {id:'twos', name:'Twos', par:6}, 
         {id:'threes', name:'Threes', par:9},
         {id:'fours', name:'Fours', par:12}, 
         {id:'fives', name:'Fives', par:15}, 
         {id:'sixes', name:'Sixes', par:18},
-        
-        // Calculations
         {id:'sum', name:'Sum (No Bonus)', type:'calc', cls:'calc-row'},
         {id:'par', name:'Score vs Par', type:'calc', cls:'par-row'},
         {id:'bonus', name:'Bonus (63+)', type:'calc', cls:'calc-row'},
         {id:'upperTot', name:'Upper Total', type:'calc', cls:'total-row'},
-        
-        // Lower (Reordered: Chance first)
         {id:'tok', name:'3 of Kind'}, 
         {id:'fok', name:'4 of Kind'}, 
         {id:'fh', name:'Full House'},
@@ -312,26 +313,18 @@
         {id:'ls', name:'Long Straight'},
         {id:'c', name:'Chance'},
         {id:'y', name:'Yahtzee'},
-        
-        // Lower Total & Grand Total
         {id:'lowerTot', name:'Lower Total', type:'calc', cls:'total-row'},
         {id:'total', name:'GRAND TOTAL', type:'calc', cls:'total-row'},
-        
-        // Ghost (Does not affect score)
         {id:'ghost', name:'Ghost Ytz', cls:'ghost-row'} 
     ];
 
     window.onload = () => {
-        // Load Saved Email
         if(localStorage.getItem('yz_email')) document.getElementById('target-email').value = localStorage.getItem('yz_email');
-        
-        // Hide FS button if already standalone (iOS/Android PWA)
         if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
             document.getElementById('fs-btn').style.display = 'none';
         }
     };
 
-    // --- NAVIGATION ---
     function goToNames() {
         const num = document.getElementById('num-players').value;
         const c = document.getElementById('names-container');
@@ -349,7 +342,7 @@
 
         if(document.getElementById('names-screen').classList.contains('active')) {
             const num = document.getElementById('num-players').value;
-            players = [];
+            players =[];
             for(let i=0; i<num; i++) {
                 players.push({ id:i, name: document.getElementById(`p${i}`).value.trim() || `P${i+1}` });
             }
@@ -363,7 +356,6 @@
         showScreen('game-screen');
     }
 
-    // --- TABLE RENDERING ---
     function renderTable() {
         const t = document.getElementById('score-table');
         let h = `<thead><tr><th style="z-index:11; background:#fff;"></th>`;
@@ -413,17 +405,14 @@
         t.innerHTML = h;
     }
 
-    // --- CALCULATIONS ---
     function calcValue(pid, catId) {
         let s = scores[pid];
-        
         const v = (id) => (s[id] !== undefined ? s[id] : 0);
         const has = (id) => (s[id] !== undefined);
 
         let upperSum = v('ones')+v('twos')+v('threes')+v('fours')+v('fives')+v('sixes');
         
         if (catId === 'sum') return upperSum;
-        
         if (catId === 'par') {
             let runningPar = 0;
             if(has('ones')) runningPar += (v('ones') - 3);
@@ -439,18 +428,12 @@
         if (catId === 'bonus') return bonus;
         if (catId === 'upperTot') return upperSum + bonus;
 
-        // Lower Section Sum
         let lower = v('tok')+v('fok')+v('fh')+v('ss')+v('ls')+v('c')+v('y');
-        
         if (catId === 'lowerTot') return lower;
-
-        if (catId === 'total') {
-            return upperSum + bonus + lower;
-        }
+        if (catId === 'total') return upperSum + bonus + lower;
         return 0;
     }
 
-    // --- KEYPAD ---
     function openKeypad(pid, cid) {
         activePid=pid; activeCat=cid; buffer="";
         renderTable(); 
@@ -468,13 +451,8 @@
         activePid=null; activeCat=null; renderTable();
     }
 
-    function pk(n) { 
-        if(buffer.length<3) { buffer+=n; updatePreview(buffer); } 
-    }
-    function pX() { 
-        if(buffer.length > 0) { buffer=""; updatePreview("Cleared"); }
-        else { buffer="0"; updatePreview("/"); }
-    }
+    function pk(n) { if(buffer.length<3) { buffer+=n; updatePreview(buffer); } }
+    function pX() { if(buffer.length > 0) { buffer=""; updatePreview("Cleared"); } else { buffer="0"; updatePreview("/"); } }
     function pEnt() {
         let val = (buffer==="/" || buffer==="0") ? 0 : parseInt(buffer || "0");
         scores[activePid][activeCat] = val;
@@ -482,7 +460,6 @@
     }
     function updatePreview(txt) { document.getElementById('kp-preview').innerText = txt; }
 
-    // --- FINISH ACTIONS ---
     function openFinishModal() {
         document.getElementById('confirm-backdrop').style.display = 'block';
         document.getElementById('confirm-modal').style.display = 'block';
@@ -504,22 +481,13 @@
     }
 
     function sendEmail() {
-        // Date formatting
         let dateObj = gameInfo.startTime || new Date();
-        let dateStr = dateObj.toLocaleString('en-GB', { 
-            weekday: 'short', year: '2-digit', month: 'short', day: 'numeric', 
-            hour: '2-digit', minute: '2-digit' 
-        });
+        let dateStr = dateObj.toLocaleString('en-GB', { weekday: 'short', year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         
-        // Subject Construction
         let subject = "Yahtzee";
-        if (gameInfo.locationName) {
-            subject += `: ${gameInfo.locationName} - ${dateStr}`;
-        } else {
-            subject += ` - ${dateStr}`;
-        }
+        if (gameInfo.locationName) subject += `: ${gameInfo.locationName} - ${dateStr}`;
+        else subject += ` - ${dateStr}`;
 
-        // Body Construction
         let body = `YAHTZEE REPORT\n${dateStr}\n`;
         if(gameInfo.locationName) body += `Loc: ${gameInfo.locationName}\n`;
         if(gameInfo.coords) body += `Map: https://maps.google.com/?q=${gameInfo.coords.lat},${gameInfo.coords.lon}\n`;
@@ -557,7 +525,6 @@
         document.getElementById('loc-name').value = '';
     }
 
-    // --- UTILS ---
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById(id).classList.add('active');
@@ -569,14 +536,12 @@
             gameInfo.coords = { lat: pos.coords.latitude.toFixed(5), lon: pos.coords.longitude.toFixed(5) };
             document.getElementById('gps-result').innerText = "✓ Location captured";
             document.getElementById('gps-result').style.display = "block";
-            document.getElementById('gps-result').style.color = "green";
+            document.getElementById('gps-result').style.color = "var(--green)";
         });
     }
 
     function handleFullScreenClick() {
-        // Smart Check: If we are already standalone (installed), this button won't be visible anyway due to CSS.
-        // But if clicked in browser:
-        if (/iPhone|iPad/.test(navigator.userAgent)) alert("Use 'Add to Home Screen' for Full Screen.");
+        if (/iPhone|iPad/.test(navigator.userAgent)) alert("Use the Share menu > 'Add to Home Screen' for Full Screen.");
         else if (!document.fullscreenElement) document.documentElement.requestFullscreen();
         else document.exitFullscreen();
     }
