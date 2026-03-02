@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Yahtzee 2.2">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <title>Yahtzee 2.2</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #c0392b;
+            --green: #27ae60;
+            --blue: #2980b9;
+            --purple: #8e44ad;
+            --bg: #f2f4f6;
+            --par-neg: #e74c3c;
+            --par-pos: #27ae60;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        body, html {
+            height: 100%; margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg); overflow: hidden;
+        }
+
+        .screen { display: none; height: 100%; flex-direction: column; }
+        .active { display: flex; }
+        .hidden { display: none !important; }
+
+        /* --- SETUP & SCROLL AREAS --- */
+        .scroll-area {
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+            padding: 20px; display: flex; justify-content: center; align-items: flex-start; 
+        }
+
+        .card {
+            background: white; padding: 25px; border-radius: 16px;
+            width: 100%; max-width: 400px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1, h2 { margin-top: 0; color: var(--primary); }
+        
+        input {
+            width: 100%; padding: 12px; margin-bottom: 12px;
+            border: 2px solid #ddd; border-radius: 8px;
+            font-size: 1.1rem; text-align: center; background: #fafafa;
+        }
+        input:focus { border-color: var(--blue); outline: none; background: #fff; }
+        
+        .input-label { display: block; text-align: left; font-weight: bold; font-size: 0.9rem; color: #666; margin-bottom: 4px; }
+
+        .btn-main {
+            width: 100%; padding: 15px; border: none; border-radius: 10px;
+            background-color: var(--primary); color: white;
+            font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 8px;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+        }
+        .btn-main:active { transform: scale(0.98); opacity: 0.9; }
+        
+        .btn-gps {
+            padding: 8px; background: var(--purple); color: white;
+            border: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem;
+            display: flex; align-items: center; justify-content: center; width: 100%;
+        }
+
+        /* --- GAME HEADER --- */
+        #game-header {
+            flex: 0 0 auto; background: var(--primary); color: white;
+            padding: 8px 12px; padding-top: max(10px, env(safe-area-inset-top)); 
+            display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 20;
+        }
+
+        #game-title { font-size: 1.1rem; font-weight: 800; }
+
+        .header-icon-btn {
+            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
+            color: white; font-size: 1.2rem; width: 38px; height: 38px;
+            border-radius: 8px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative;
+        }
+        .header-icon-btn:active { background: rgba(255,255,255,0.3); top: 1px; }
+
+        /* --- COMPACT TABLE --- */
+        #table-area {
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: white;
+        }
+        
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 40px;}
+        
+        th {
+            background: #f1f2f6; color: #555; text-transform: uppercase;
+            font-size: 0.7rem; padding: 6px 2px;
+            position: sticky; top: 0; border-bottom: 2px solid #ccc; z-index: 10;
+        }
+        
+        td {
+            border-bottom: 1px solid #eee; border-right: 1px solid #eee;
+            padding: 0; height: 36px;
+            text-align: center; font-size: 1rem;
+        }
+
+        .cat-col {
+            width: 42%; text-align: left; padding-left: 8px;
+            font-weight: 600; font-size: 0.85rem; color: #444;
+            background: #fff; position: sticky; left: 0;
+            border-right: 2px solid #eee; z-index: 5;
+        }
+
+        .score-cell { color: var(--blue); font-weight: 700; }
+        .score-cell.filled { color: var(--primary); }
+        .score-cell.zero { color: #bdc3c7; }
+        .active-cell { background-color: #fff3cd !important; }
+        
+        .calc-row td { background-color: #fdfdfd; font-size: 0.9rem; color: #555; }
+        .total-row td { background-color: #e8f6f3; font-weight: 800; border-top: 2px solid #ccc; color: var(--primary); }
+        
+        .par-row td { font-size: 0.85rem; font-weight: bold; background-color: #fcfcfc; border-bottom: 2px solid #eee; }
+        .par-pos { color: var(--par-pos); }
+        .par-neg { color: var(--par-neg); }
+        .par-neutral { color: #999; }
+
+        .ghost-row td { background-color: #fdf2f2; font-style: italic; color: #7f8c8d; border-top: 2px solid #eee; }
+
+        /* --- FOOTER --- */
+        #game-footer {
+            flex: 0 0 auto; padding: 10px; background: white;
+            border-top: 1px solid #ddd; padding-bottom: max(15px, env(safe-area-inset-bottom));
+            display: flex; gap: 10px;
+        }
+
+        /* --- MODALS (Keypad & Confirm) --- */
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 99; display: none; backdrop-filter: blur(3px);
+        }
+
+        /* Keypad Panel */
+        #keypad-panel {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: #fdfdfd;
+            border-top-left-radius: 16px; border-top-right-radius: 16px;
+            box-shadow: 0 -10px 40px rgba(0,0,0,0.2); z-index: 100;
+            transform: translateY(100%); transition: transform 0.2s ease-out;
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
+        }
+        #keypad-panel.open { transform: translateY(0); }
+
+        /* Confirmation Modal */
+        #confirm-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: white; padding: 25px; border-radius: 15px; width: 85%; max-width: 320px;
+            z-index: 101; display: none; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .kp-header { display: flex; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid #eee; color: #888; font-size: 0.9rem; }
+        .kp-preview { font-size: 1.4rem; font-weight: bold; color: var(--blue); }
+        .kp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
+        
+        .kbtn {
+            background: white; border: 1px solid #e0e0e0; border-radius: 8px;
+            height: 55px; font-size: 1.5rem; font-weight: 600; color: var(--primary);
+            box-shadow: 0 2px 0 #dcdcdc;
+        }
+        .kbtn:active { background-color: #ecf0f1; transform: translateY(2px); box-shadow: none; }
+        .kbtn.x-btn { background: #ffecec; color: var(--accent); border-color: #ffcccc; box-shadow: 0 2px 0 #ffb3b3; }
+        .kbtn.ok-btn { background: #e8f8f5; color: var(--green); border-color: #c3e8de; box-shadow: 0 2px 0 #a9dfbf; font-size: 1.1rem; }
+
+        .modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 1rem; }
+        .btn-cancel { background: #ecf0f1; color: #333; }
+        .btn-confirm { background: var(--green); color: white; }
+
+    </style>
+</head>
+<body>
+
+    <!-- SCREEN 1: SETUP -->
+    <div id="setup-screen" class="screen active">
+        <div class="scroll-area">
+            <div class="card">
+                <h1>Yahtzee 2.2</h1>
+                <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">
+                    Tap "Share" > "Add to Home Screen" on iPhone for full screen.
+                </p>
+                <label class="input-label">Players</label>
+                <input type="number" id="num-players" inputmode="numeric" min="1" max="6" value="2">
+                <button class="btn-main" onclick="goToNames()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: DETAILS -->
+    <div id="names-screen" class="screen">
+        <div class="scroll-area">
+            <div class="card">
+                <h2>Game Details</h2>
+                
+                <label class="input-label">Email Results To</label>
+                <input type="email" id="target-email" placeholder="email@example.com" autocapitalize="off">
+
+                <label class="input-label">Location</label>
+                <input type="text" id="loc-name" placeholder="e.g. The Pub">
+                
+                <button class="btn-gps" onclick="getGPS()" style="margin-bottom:20px;">
+                    <span>📍 Use GPS</span>
+                </button>
+                <div id="gps-result" style="display:none;"></div>
+
+                <h2>Initials</h2>
+                <div id="names-container"></div>
+                
+                <button class="btn-main" onclick="startGame()" style="background-color:var(--green)">Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCREEN 3: GAME BOARD -->
+    <div id="game-screen" class="screen">
+        <div id="game-header">
+            <button class="header-icon-btn" onclick="handleFullScreenClick()">⛶</button>
+            <div id="game-title">YAHTZEE</div>
+            <!-- Finish Button -->
+            <button class="header-icon-btn" onclick="openFinishModal()" style="background:var(--green); border-color:var(--green);">✓</button>
+        </div>
+        
+        <div id="table-area">
+            <table id="score-table"></table>
+        </div>
+
+        <div id="game-footer" class="hidden">
+            <button class="btn-main" onclick="quickRestart()" style="background:var(--blue); margin:0;">Quick Restart</button>
+            <button class="btn-main" onclick="fullReset()" style="background:#7f8c8d; margin:0;">Full Reset</button>
+        </div>
+    </div>
+
+    <!-- CONFIRMATION MODAL -->
+    <div id="confirm-backdrop" class="modal-backdrop"></div>
+    <div id="confirm-modal">
+        <h3>Finish Game?</h3>
+        <p style="color:#666; margin-bottom:10px;">This will lock scores and prepare the email.</p>
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-cancel" onclick="closeFinishModal()">Cancel</button>
+            <button class="modal-btn btn-confirm" onclick="finalizeGame()">Yes, Finish</button>
+        </div>
+    </div>
+
+    <!-- KEYPAD MODAL -->
+    <div id="keypad-backdrop" class="modal-backdrop" onclick="closeKeypad()"></div>
+    <div id="keypad-panel">
+        <div class="kp-header">
+            <span id="kp-info">Player - Category</span>
+            <span id="kp-preview" class="kp-preview"></span>
+        </div>
+        <div class="kp-grid">
+            <button class="kbtn" onclick="pk(1)">1</button>
+            <button class="kbtn" onclick="pk(2)">2</button>
+            <button class="kbtn" onclick="pk(3)">3</button>
+            <button class="kbtn" onclick="pk(4)">4</button>
+            <button class="kbtn" onclick="pk(5)">5</button>
+            <button class="kbtn" onclick="pk(6)">6</button>
+            <button class="kbtn" onclick="pk(7)">7</button>
+            <button class="kbtn" onclick="pk(8)">8</button>
+            <button class="kbtn" onclick="pk(9)">9</button>
+            <button class="kbtn x-btn" onclick="pX()">X</button>
+            <button class="kbtn" onclick="pk(0)">0</button>
+            <button class="kbtn ok-btn" onclick="pEnt()">ENTER</button>
+        </div>
+    </div>
+
+<script>
+    // --- DATA ---
+    let players = [], scores = {}, activePid = null, activeCat = null, buffer = "";
+    let gameInfo = { startTime: null, locationName: "", targetEmail: "", coords: null };
+
+    // CATEGORY DEFINITIONS
+    const cats = [
+        // Upper
+        {id:'ones', name:'Ones', par:3}, 
+        {id:'twos', name:'Twos', par:6}, 
+        {id:'threes', name:'Threes', par:9},
+        {id:'fours', name:'Fours', par:12}, 
+        {id:'fives', name:'Fives', par:15}, 
+        {id:'sixes', name:'Sixes', par:18},
+        
+        // Calculations
+        {id:'sum', name:'Sum (No Bonus)', type:'calc', cls:'calc-row'},
+        {id:'par', name:'Score vs Par', type:'calc', cls:'par-row'},
+        {id:'bonus', name:'Bonus (63+)', type:'calc', cls:'calc-row'},
+        {id:'upperTot', name:'Upper Total', type:'calc', cls:'total-row'},
+        
+        // Lower (Reordered: Chance first)
+        {id:'tok', name:'3 of Kind'}, 
+        {id:'fok', name:'4 of Kind'}, 
+        {id:'fh', name:'Full House'},
+        {id:'ss', name:'Short Straight'},
+        {id:'ls', name:'Long Straight'},
+        {id:'c', name:'Chance'},
+        {id:'y', name:'Yahtzee'},
+        
+        // Lower Total & Grand Total
+        {id:'lowerTot', name:'Lower Total', type:'calc', cls:'total-row'},
+        {id:'total', name:'GRAND TOTAL', type:'calc', cls:'total-row'},
+        
+        // Ghost (Does not affect score)
+        {id:'ghost', name:'Ghost Ytz', cls:'ghost-row'} 
+    ];
+
+    window.onload = () => {
+        if(localStorage.getItem('yz_email')) document.getElementById('target-email').value = localStorage.getItem('yz_email');
+    };
+
+    // --- NAVIGATION ---
+    function goToNames() {
+        const num = document.getElementById('num-players').value;
+        const c = document.getElementById('names-container');
+        c.innerHTML = "";
+        for(let i=0; i<num; i++) c.innerHTML += `<input id="p${i}" placeholder="P${i+1}" maxlength="3" autocapitalize="characters">`;
+        showScreen('names-screen');
+    }
+
+    function startGame() {
+        gameInfo.startTime = new Date();
+        const email = document.getElementById('target-email').value.trim();
+        if(email) localStorage.setItem('yz_email', email);
+        gameInfo.targetEmail = email;
+        gameInfo.locationName = document.getElementById('loc-name').value.trim();
+
+        if(document.getElementById('names-screen').classList.contains('active')) {
+            const num = document.getElementById('num-players').value;
+            players = [];
+            for(let i=0; i<num; i++) {
+                players.push({ id:i, name: document.getElementById(`p${i}`).value.trim() || `P${i+1}` });
+            }
+        }
+        
+        scores = {};
+        players.forEach(p => scores[p.id] = {});
+
+        document.getElementById('game-footer').classList.add('hidden');
+        renderTable();
+        showScreen('game-screen');
+    }
+
+    // --- TABLE RENDERING ---
+    function renderTable() {
+        const t = document.getElementById('score-table');
+        let h = `<thead><tr><th style="z-index:11; background:#fff;"></th>`;
+        players.forEach(p => h += `<th>${p.name}</th>`);
+        h += `</tr></thead><tbody>`;
+
+        cats.forEach(c => {
+            let trClass = c.cls || '';
+            h += `<tr class="${trClass}"><td class="cat-col">${c.name}</td>`;
+            
+            players.forEach(p => {
+                if(c.type === 'calc') {
+                    // Calculated Values
+                    let val = calcValue(p.id, c.id);
+                    let display = val;
+                    let styleClass = "";
+                    
+                    if(c.id === 'par') {
+                        if(val > 0) { display = `+${val}`; styleClass="par-pos"; }
+                        else if(val < 0) { display = `${val}`; styleClass="par-neg"; }
+                        else { display = "E"; styleClass="par-neutral"; }
+                    }
+                    
+                    h += `<td class="${styleClass}">${display}</td>`;
+                } else {
+                    // Input Values
+                    let raw = scores[p.id][c.id];
+                    let display = "";
+                    let cellCls = "score-cell";
+                    
+                    if (raw !== undefined && raw !== null) {
+                        if (raw === 0) {
+                            display = "/"; 
+                            cellCls += " zero";
+                        } else {
+                            display = raw;
+                            cellCls += " filled";
+                        }
+                    }
+                    
+                    if(activePid===p.id && activeCat===c.id) cellCls += " active-cell";
+                    
+                    h += `<td class="${cellCls}" onclick="openKeypad(${p.id}, '${c.id}')">${display}</td>`;
+                }
+            });
+            h += `</tr>`;
+        });
+        h += `</tbody>`;
+        t.innerHTML = h;
+    }
+
+    // --- CALCULATIONS ---
+    function calcValue(pid, catId) {
+        let s = scores[pid];
+        
+        const v = (id) => (s[id] !== undefined ? s[id] : 0);
+        const has = (id) => (s[id] !== undefined);
+
+        let upperSum = v('ones')+v('twos')+v('threes')+v('fours')+v('fives')+v('sixes');
+        
+        if (catId === 'sum') return upperSum;
+        
+        if (catId === 'par') {
+            let runningPar = 0;
+            if(has('ones')) runningPar += (v('ones') - 3);
+            if(has('twos')) runningPar += (v('twos') - 6);
+            if(has('threes')) runningPar += (v('threes') - 9);
+            if(has('fours')) runningPar += (v('fours') - 12);
+            if(has('fives')) runningPar += (v('fives') - 15);
+            if(has('sixes')) runningPar += (v('sixes') - 18);
+            return runningPar;
+        }
+
+        let bonus = upperSum >= 63 ? 35 : 0;
+        if (catId === 'bonus') return bonus;
+        if (catId === 'upperTot') return upperSum + bonus;
+
+        // Lower Section Sum
+        let lower = v('tok')+v('fok')+v('fh')+v('ss')+v('ls')+v('c')+v('y');
+        
+        if (catId === 'lowerTot') return lower;
+
+        if (catId === 'total') {
+            return upperSum + bonus + lower;
+        }
+        return 0;
+    }
+
+    // --- KEYPAD ---
+    function openKeypad(pid, cid) {
+        activePid=pid; activeCat=cid; buffer="";
+        renderTable(); 
+        let pName = players.find(p=>p.id===pid).name;
+        let cName = cats.find(c=>c.id===cid).name;
+        document.getElementById('kp-info').innerText = `${pName}: ${cName}`;
+        document.getElementById('kp-preview').innerText = "";
+        document.getElementById('keypad-backdrop').style.display='block';
+        setTimeout(()=>document.getElementById('keypad-panel').classList.add('open'), 10);
+    }
+
+    function closeKeypad() {
+        document.getElementById('keypad-panel').classList.remove('open');
+        setTimeout(()=>document.getElementById('keypad-backdrop').style.display='none', 200);
+        activePid=null; activeCat=null; renderTable();
+    }
+
+    function pk(n) { 
+        if(buffer.length<3) { buffer+=n; updatePreview(buffer); } 
+    }
+    function pX() { 
+        if(buffer.length > 0) { buffer=""; updatePreview("Cleared"); }
+        else { buffer="0"; updatePreview("/"); }
+    }
+    function pEnt() {
+        let val = (buffer==="/" || buffer==="0") ? 0 : parseInt(buffer || "0");
+        scores[activePid][activeCat] = val;
+        closeKeypad();
+    }
+    function updatePreview(txt) { document.getElementById('kp-preview').innerText = txt; }
+
+    // --- FINISH ACTIONS (Custom Modal) ---
+    function openFinishModal() {
+        document.getElementById('confirm-backdrop').style.display = 'block';
+        document.getElementById('confirm-modal').style.display = 'block';
+    }
+
+    function closeFinishModal() {
+        document.getElementById('confirm-backdrop').style.display = 'none';
+        document.getElementById('confirm-modal').style.display = 'none';
+    }
+
+    function finalizeGame() {
+        closeFinishModal();
+        sendEmail();
+        document.getElementById('game-footer').classList.remove('hidden');
+        // Auto scroll to bottom
+        setTimeout(() => {
+            const area = document.getElementById('table-area');
+            area.scrollTop = area.scrollHeight;
+        }, 100);
+    }
+
+    function sendEmail() {
+        // Date formatting
+        let dateObj = gameInfo.startTime || new Date();
+        let dateStr = dateObj.toLocaleString('en-GB', { 
+            weekday: 'short', year: '2-digit', month: 'short', day: 'numeric', 
+            hour: '2-digit', minute: '2-digit' 
+        });
+        
+        // Subject Construction
+        let subject = "Yahtzee";
+        if (gameInfo.locationName) {
+            subject += `: ${gameInfo.locationName} - ${dateStr}`;
+        } else {
+            subject += ` - ${dateStr}`;
+        }
+
+        // Body Construction
+        let body = `YAHTZEE REPORT\n${dateStr}\n`;
+        if(gameInfo.locationName) body += `Loc: ${gameInfo.locationName}\n`;
+        if(gameInfo.coords) body += `Map: https://maps.google.com/?q=${gameInfo.coords.lat},${gameInfo.coords.lon}\n`;
+        
+        body += "\n--- SCORES ---\n";
+        
+        let winner = {n:'', s:-1};
+        players.forEach(p => {
+            let tot = calcValue(p.id, 'total');
+            body += `${p.name}: ${tot}\n`;
+            if(tot > winner.s) winner = {n:p.name, s:tot};
+        });
+        body += `\nWINNER: ${winner.n}\n\n`;
+
+        players.forEach(p => {
+            body += `[ ${p.name} ]\n`;
+            cats.forEach(c => {
+                if(c.type !== 'calc') {
+                    let v = scores[p.id][c.id];
+                    let disp = (v===0) ? "/" : (v || "-");
+                    body += `${c.name}: ${disp}\n`;
+                }
+            });
+            body += `TOTAL: ${calcValue(p.id, 'total')}\n\n`;
+        });
+
+        window.location.href = `mailto:${gameInfo.targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    }
+
+    function quickRestart() { startGame(); }
+
+    function fullReset() {
+        showScreen('setup-screen');
+        document.getElementById('names-container').innerHTML = '';
+        document.getElementById('loc-name').value = '';
+    }
+
+    // --- UTILS ---
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function getGPS() {
+        if(!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(pos => {
+            gameInfo.coords = { lat: pos.coords.latitude.toFixed(5), lon: pos.coords.longitude.toFixed(5) };
+            document.getElementById('gps-result').innerText = "✓ Location captured";
+            document.getElementById('gps-result').style.display = "block";
+            document.getElementById('gps-result').style.color = "green";
+        });
+    }
+
+    function handleFullScreenClick() {
+        if (/iPhone|iPad/.test(navigator.userAgent)) alert("Use 'Add to Home Screen' for Full Screen.");
+        else if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+        else document.exitFullscreen();
+    }
+</script>
+</body>
+</html>
