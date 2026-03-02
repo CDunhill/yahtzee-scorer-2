@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-title" content="Yahtzee 2.2">
+    <meta name="apple-mobile-web-app-title" content="Yahtzee 2.3">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
-    <title>Yahtzee 2.2</title>
+    <title>Yahtzee 2.3</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -24,9 +24,12 @@
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
         
         body, html {
-            height: 100%; margin: 0; padding: 0;
+            /* 100dvh fixes the "7% gap" issue on mobile browsers */
+            height: 100dvh; 
+            margin: 0; padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background-color: var(--bg); overflow: hidden;
+            background-color: var(--bg); 
+            overflow: hidden;
         }
 
         .screen { display: none; height: 100%; flex-direction: column; }
@@ -89,6 +92,11 @@
         }
         .header-icon-btn:active { background: rgba(255,255,255,0.3); top: 1px; }
 
+        /* Hides FS button if app is installed */
+        @media all and (display-mode: standalone) {
+            #fs-btn { display: none; }
+        }
+
         /* --- COMPACT TABLE --- */
         #table-area {
             flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: white;
@@ -143,7 +151,6 @@
             background: rgba(0,0,0,0.5); z-index: 99; display: none; backdrop-filter: blur(3px);
         }
 
-        /* Keypad Panel */
         #keypad-panel {
             position: fixed; bottom: 0; left: 0; right: 0;
             background: #fdfdfd;
@@ -154,7 +161,6 @@
         }
         #keypad-panel.open { transform: translateY(0); }
 
-        /* Confirmation Modal */
         #confirm-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: white; padding: 25px; border-radius: 15px; width: 85%; max-width: 320px;
@@ -188,7 +194,7 @@
     <div id="setup-screen" class="screen active">
         <div class="scroll-area">
             <div class="card">
-                <h1>Yahtzee 2.2</h1>
+                <h1>Yahtzee 2.3</h1>
                 <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">
                     Tap "Share" > "Add to Home Screen" on iPhone for full screen.
                 </p>
@@ -227,7 +233,7 @@
     <!-- SCREEN 3: GAME BOARD -->
     <div id="game-screen" class="screen">
         <div id="game-header">
-            <button class="header-icon-btn" onclick="handleFullScreenClick()">⛶</button>
+            <button id="fs-btn" class="header-icon-btn" onclick="handleFullScreenClick()">⛶</button>
             <div id="game-title">YAHTZEE</div>
             <!-- Finish Button -->
             <button class="header-icon-btn" onclick="openFinishModal()" style="background:var(--green); border-color:var(--green);">✓</button>
@@ -316,7 +322,13 @@
     ];
 
     window.onload = () => {
+        // Load Saved Email
         if(localStorage.getItem('yz_email')) document.getElementById('target-email').value = localStorage.getItem('yz_email');
+        
+        // Hide FS button if already standalone (iOS/Android PWA)
+        if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+            document.getElementById('fs-btn').style.display = 'none';
+        }
     };
 
     // --- NAVIGATION ---
@@ -364,7 +376,6 @@
             
             players.forEach(p => {
                 if(c.type === 'calc') {
-                    // Calculated Values
                     let val = calcValue(p.id, c.id);
                     let display = val;
                     let styleClass = "";
@@ -377,7 +388,6 @@
                     
                     h += `<td class="${styleClass}">${display}</td>`;
                 } else {
-                    // Input Values
                     let raw = scores[p.id][c.id];
                     let display = "";
                     let cellCls = "score-cell";
@@ -472,7 +482,7 @@
     }
     function updatePreview(txt) { document.getElementById('kp-preview').innerText = txt; }
 
-    // --- FINISH ACTIONS (Custom Modal) ---
+    // --- FINISH ACTIONS ---
     function openFinishModal() {
         document.getElementById('confirm-backdrop').style.display = 'block';
         document.getElementById('confirm-modal').style.display = 'block';
@@ -487,7 +497,6 @@
         closeFinishModal();
         sendEmail();
         document.getElementById('game-footer').classList.remove('hidden');
-        // Auto scroll to bottom
         setTimeout(() => {
             const area = document.getElementById('table-area');
             area.scrollTop = area.scrollHeight;
@@ -565,6 +574,8 @@
     }
 
     function handleFullScreenClick() {
+        // Smart Check: If we are already standalone (installed), this button won't be visible anyway due to CSS.
+        // But if clicked in browser:
         if (/iPhone|iPad/.test(navigator.userAgent)) alert("Use 'Add to Home Screen' for Full Screen.");
         else if (!document.fullscreenElement) document.documentElement.requestFullscreen();
         else document.exitFullscreen();
