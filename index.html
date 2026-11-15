@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#2c3e50"> <!-- Colors the Chrome browser UI -->
     
-    <title>Yahtzee 2.4</title>
+    <title>Yahtzee Scorer 2.5</title>
     <style>
         :root {
             --primary: #2c3e50;
@@ -19,8 +19,45 @@
             --blue: #2980b9;
             --purple: #8e44ad;
             --bg: #f2f4f6;
+            --surface: #fff;
+            --surface-soft: #fdfdfd;
+            --surface-muted: #f1f2f6;
+            --text: #333;
+            --muted-text: #666;
+            --border: #ddd;
+            --active-cell: #fff3cd;
+            --total-bg: #e8f6f3;
             --par-neg: #e74c3c;
             --par-pos: #27ae60;
+        }
+
+        html[data-theme="dark"] {
+            --primary: #18262d;
+            --accent: #ef6b61;
+            --green: #228b68;
+            --blue: #3289ac;
+            --purple: #8468a8;
+            --bg: #10191d;
+            --surface: #1d292e;
+            --surface-soft: #243238;
+            --surface-muted: #314147;
+            --text: #edf2f2;
+            --muted-text: #b6c2c6;
+            --border: #405158;
+            --active-cell: #51471d;
+            --total-bg: #21463d;
+            --par-neg: #ff847b;
+            --par-pos: #61d39a;
+        }
+
+        html[data-theme="forest"] {
+            --primary: #234d3a;
+            --green: #267653;
+            --blue: #347b82;
+            --purple: #687b45;
+            --bg: #edf3ee;
+            --surface-muted: #e3ebe3;
+            --total-bg: #dceee4;
         }
 
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
@@ -52,22 +89,22 @@
         }
 
         .card {
-            background: white; padding: 25px; border-radius: 16px;
+            background: var(--surface); color: var(--text); padding: 25px; border-radius: 16px;
             width: 100%; max-width: 400px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.1); text-align: center;
             margin-bottom: max(20px, env(safe-area-inset-bottom));
         }
 
-        h1, h2 { margin-top: 0; color: var(--primary); }
+        h1, h2 { margin-top: 0; color: var(--text); }
         
         input {
             width: 100%; padding: 12px; margin-bottom: 12px;
-            border: 2px solid #ddd; border-radius: 8px;
-            font-size: 1.1rem; text-align: center; background: #fafafa;
+            border: 2px solid var(--border); border-radius: 8px;
+            font-size: 1.1rem; text-align: center; background: var(--surface-soft); color: var(--text);
         }
-        input:focus { border-color: var(--blue); outline: none; background: #fff; }
+        input:focus { border-color: var(--blue); outline: none; background: var(--surface); }
         
-        .input-label { display: block; text-align: left; font-weight: bold; font-size: 0.9rem; color: #666; margin-bottom: 4px; }
+        .input-label { display: block; text-align: left; font-weight: bold; font-size: 0.9rem; color: var(--muted-text); margin-bottom: 4px; }
 
         .btn-main {
             width: 100%; padding: 15px; border: none; border-radius: 10px;
@@ -76,6 +113,13 @@
             box-shadow: 0 3px 5px rgba(0,0,0,0.1);
         }
         .btn-main:active { transform: scale(0.98); opacity: 0.9; }
+        html[data-theme="dark"] #setup-screen .btn-main { background-color: var(--green); }
+
+        .btn-secondary {
+            width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+            background: var(--surface-muted); color: var(--text); font-size: 1rem; font-weight: 700;
+            cursor: pointer; margin-top: 8px;
+        }
         
         .btn-gps {
             padding: 8px; background: var(--purple); color: white;
@@ -91,7 +135,8 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.15); z-index: 20;
         }
 
-        #game-title { font-size: 1.1rem; font-weight: 800; }
+        #game-title { flex: 1; text-align: center; font-size: 1.1rem; font-weight: 800; }
+        .header-actions { display: flex; gap: 6px; }
 
         .header-icon-btn {
             background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2);
@@ -107,50 +152,86 @@
 
         /* --- COMPACT TABLE --- */
         #table-area {
-            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: white;
+            flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--surface);
             padding-bottom: max(30px, env(safe-area-inset-bottom)); /* Gives clearance at the bottom */
         }
         
         table { width: 100%; border-collapse: collapse; table-layout: fixed; }
         
         th {
-            background: #f1f2f6; color: #555; text-transform: uppercase;
+            background: var(--surface-muted); color: var(--muted-text); text-transform: uppercase;
             font-size: 0.7rem; padding: 6px 2px;
-            position: sticky; top: 0; border-bottom: 2px solid #ccc; z-index: 10;
+            position: sticky; top: 0; border-bottom: 2px solid var(--border); z-index: 10;
         }
+        th.player-heading { color: var(--text); font-size: 0.95rem; font-weight: 900; }
         
         td {
-            border-bottom: 1px solid #eee; border-right: 1px solid #eee;
+            border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
             padding: 0; height: 36px;
-            text-align: center; font-size: 1rem;
+            text-align: center; font-size: 1rem; background: var(--surface);
         }
 
         .cat-col {
             width: 42%; text-align: left; padding-left: 8px;
-            font-weight: 600; font-size: 0.85rem; color: #444;
-            background: #fff; position: sticky; left: 0;
-            border-right: 2px solid #eee; z-index: 5;
+            font-weight: 600; font-size: 0.85rem; color: var(--text);
+            background: var(--surface); position: sticky; left: 0;
+            border-right: 2px solid var(--border); z-index: 5;
         }
 
         .score-cell { color: var(--blue); font-weight: 700; }
-        .score-cell.filled { color: var(--primary); }
+        .score-cell.filled { color: var(--text); }
         .score-cell.zero { color: #bdc3c7; }
-        .active-cell { background-color: #fff3cd !important; }
+        .active-cell { background-color: var(--active-cell) !important; }
+        .confetti-overlay {
+            position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 150;
+        }
+        .yahtzee-burst-text {
+            position: absolute; top: 50%; left: 50%; display: flex; width: max-content; max-width: 90vw;
+            color: #f2c94c; font-size: clamp(2.5rem, 12vw, 6rem); font-weight: 1000;
+            line-height: 1; text-align: center; text-shadow: 0 4px 0 #b44532, 0 8px 24px rgba(0,0,0,0.35);
+            transform: translate(-50%, -50%);
+        }
+        .yahtzee-burst-letter {
+            display: inline-block; opacity: 0;
+            animation: yahtzee-letter-explode 3.8s linear both;
+        }
+        .confetti-piece {
+            position: absolute; top: -16px; width: 10px; height: 15px;
+            background: var(--confetti-color); opacity: 0;
+            animation: confetti-fall var(--confetti-duration) var(--confetti-delay) ease-in both;
+        }
+        @keyframes confetti-fall {
+            0% { opacity: 0; transform: translate3d(0, -2vh, 0) rotate(0deg); }
+            8% { opacity: 1; }
+            100% { opacity: 0; transform: translate3d(var(--confetti-drift), 110vh, 0) rotate(var(--confetti-spin)); }
+        }
+        @keyframes yahtzee-letter-explode {
+            0% { opacity: 0; transform: scale(0) rotate(0deg); }
+            8% { opacity: 1; transform: scale(1.18) rotate(0deg); }
+            14% { opacity: 1; transform: scale(1) rotate(0deg); }
+            22% { opacity: 1; transform: scale(1.04) rotate(0deg); }
+            40% { opacity: 1; transform: translate3d(var(--arc-x-1), var(--arc-y-1), 0) scale(0.96) rotate(var(--spin-1)); }
+            65% { opacity: 1; transform: translate3d(var(--arc-x-2), var(--arc-y-2), 0) scale(0.75) rotate(var(--spin-2)); }
+            100% { opacity: 0; transform: translate3d(var(--arc-x-3), var(--arc-y-3), 0) scale(0.35) rotate(var(--letter-spin)); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .confetti-overlay { display: none; }
+        }
         
-        .calc-row td { background-color: #fdfdfd; font-size: 0.9rem; color: #555; }
-        .total-row td { background-color: #e8f6f3; font-weight: 800; border-top: 2px solid #ccc; color: var(--primary); }
+        .calc-row td { background-color: var(--surface-soft); font-size: 0.9rem; color: var(--muted-text); }
+        .total-row td { background-color: var(--total-bg); font-weight: 800; border-top: 2px solid var(--border); color: var(--text); }
         
-        .par-row td { font-size: 0.85rem; font-weight: bold; background-color: #fcfcfc; border-bottom: 2px solid #eee; }
+        .par-row td { font-size: 0.85rem; font-weight: bold; background-color: var(--surface-soft); border-bottom: 2px solid var(--border); }
         .par-pos { color: var(--par-pos); }
         .par-neg { color: var(--par-neg); }
         .par-neutral { color: #999; }
 
-        .ghost-row td { background-color: #fdf2f2; font-style: italic; color: #7f8c8d; border-top: 2px solid #eee; }
+        .ghost-row td { background-color: var(--surface-muted); font-style: italic; color: var(--muted-text); border-top: 2px solid var(--border); }
 
         /* --- FOOTER --- */
         #game-footer {
-            flex: 0 0 auto; padding: 10px; background: white;
-            border-top: 1px solid #ddd; padding-bottom: max(15px, env(safe-area-inset-bottom));
+            flex: 0 0 auto; padding: 10px; background: var(--surface);
+            border-top: 1px solid var(--border); padding-bottom: max(15px, env(safe-area-inset-bottom));
             display: flex; gap: 10px;
         }
 
@@ -162,7 +243,7 @@
 
         #keypad-panel {
             position: fixed; bottom: 0; left: 0; right: 0;
-            background: #fdfdfd;
+            background: var(--surface-soft);
             border-top-left-radius: 16px; border-top-right-radius: 16px;
             box-shadow: 0 -10px 40px rgba(0,0,0,0.2); z-index: 100;
             transform: translateY(100%); transition: transform 0.2s ease-out;
@@ -172,28 +253,47 @@
 
         #confirm-modal {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: white; padding: 25px; border-radius: 15px; width: 85%; max-width: 320px;
+            background: var(--surface); color: var(--text); padding: 25px; border-radius: 15px; width: 85%; max-width: 360px;
             z-index: 101; display: none; text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 85vh; overflow-y: auto;
         }
+
+        #restart-modal, #settings-modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: var(--surface); color: var(--text); padding: 25px; border-radius: 12px;
+            width: 85%; max-width: 360px; z-index: 101; display: none; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 85vh; overflow-y: auto;
+        }
+
+        #restart-modal select, #settings-modal select {
+            width: 100%; padding: 12px; margin: 0 0 12px; border: 2px solid var(--border);
+            border-radius: 8px; background: var(--surface-soft); color: var(--text); font-size: 1rem;
+        }
+        .settings-note { color: var(--muted-text); font-size: 0.82rem; text-align: left; margin: -4px 0 14px; }
         
-        .kp-header { display: flex; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid #eee; color: #888; font-size: 0.9rem; }
+        .kp-header { display: flex; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); color: var(--muted-text); font-size: 0.9rem; }
         .kp-preview { font-size: 1.4rem; font-weight: bold; color: var(--blue); }
         .kp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
         
         .kbtn {
-            background: white; border: 1px solid #e0e0e0; border-radius: 8px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
             height: 55px; font-size: 1.5rem; font-weight: 600; color: var(--primary);
             box-shadow: 0 2px 0 #dcdcdc;
         }
         .kbtn:active { background-color: #ecf0f1; transform: translateY(2px); box-shadow: none; }
         .kbtn.x-btn { background: #ffecec; color: var(--accent); border-color: #ffcccc; box-shadow: 0 2px 0 #ffb3b3; }
+        .kbtn.clear-btn { background: var(--surface-muted); color: var(--text); font-size: 1rem; }
         .kbtn.ok-btn { background: #e8f8f5; color: var(--green); border-color: #c3e8de; box-shadow: 0 2px 0 #a9dfbf; font-size: 1.1rem; }
 
         .modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
         .modal-btn { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; font-size: 1rem; }
-        .btn-cancel { background: #ecf0f1; color: #333; }
+        .btn-cancel { background: var(--surface-muted); color: var(--text); }
         .btn-confirm { background: var(--green); color: white; }
+
+        html[data-theme="dark"] .kbtn.x-btn {
+            background: #482d30; color: #ff958d; border-color: #74454a; box-shadow: 0 2px 0 #633b40;
+        }
+        html[data-theme="dark"] .kbtn:not(.x-btn):not(.ok-btn) { color: var(--par-pos); }
 
     </style>
 </head>
@@ -203,13 +303,14 @@
     <div id="setup-screen" class="screen active">
         <div class="scroll-area">
             <div class="card">
-                <h1>Yahtzee 2.4</h1>
+                <h1>Yahtzee Scorer 2.5</h1>
                 <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">
                     Tip: Tap "Share" > "Add to Home Screen" on iPhone for the best full-screen app experience.
                 </p>
                 <label class="input-label">Players</label>
                 <input type="number" id="num-players" inputmode="numeric" min="1" max="6" value="2">
                 <button class="btn-main" onclick="goToNames()">Next</button>
+                <button class="btn-secondary" onclick="openSettingsModal()">⚙ Settings</button>
             </div>
         </div>
     </div>
@@ -243,8 +344,11 @@
     <div id="game-screen" class="screen">
         <div id="game-header">
             <button id="fs-btn" class="header-icon-btn" onclick="handleFullScreenClick()">⛶</button>
-            <div id="game-title">YAHTZEE</div>
-            <button class="header-icon-btn" onclick="openFinishModal()" style="background:var(--green); border-color:var(--green);">✓</button>
+            <div id="game-title"><span aria-hidden="true">🎲</span> YAHTZEE</div>
+            <div class="header-actions">
+                <button class="header-icon-btn" aria-label="Settings" title="Settings" onclick="openSettingsModal()">⚙</button>
+                <button class="header-icon-btn" aria-label="Finish and email" title="Finish and email" onclick="openFinishModal()" style="background:var(--green); border-color:var(--green);">✓</button>
+            </div>
         </div>
         
         <div id="table-area">
@@ -260,11 +364,40 @@
     <!-- CONFIRMATION MODAL -->
     <div id="confirm-backdrop" class="modal-backdrop"></div>
     <div id="confirm-modal">
-        <h3>Finish Game?</h3>
-        <p style="color:#666; margin-bottom:10px;">This will lock scores and prepare the email.</p>
+        <h3>Finish and Email?</h3>
+        <p style="color:var(--muted-text); margin-bottom:10px;">This will prepare the complete score report in your email app.</p>
         <div class="modal-btn-row">
             <button class="modal-btn btn-cancel" onclick="closeFinishModal()">Cancel</button>
             <button class="modal-btn btn-confirm" onclick="finalizeGame()">Yes, Finish</button>
+        </div>
+    </div>
+
+    <div id="restart-modal">
+        <h3>Choose Starting Player</h3>
+        <p style="color:var(--muted-text);">The other players will follow in the same order.</p>
+        <select id="restart-player" aria-label="Starting player"></select>
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-cancel" onclick="closeRestartModal()">Cancel</button>
+            <button class="modal-btn btn-confirm" onclick="beginQuickRestart()">Start Game</button>
+        </div>
+    </div>
+
+    <div id="settings-modal">
+        <h3>Settings</h3>
+        <label class="input-label" for="settings-theme">Colour scheme</label>
+        <select id="settings-theme" onchange="previewTheme(this.value)">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="forest">Forest</option>
+        </select>
+        <label class="input-label" for="settings-email">Default email</label>
+        <input type="email" id="settings-email" placeholder="email@example.com" autocapitalize="off">
+        <label class="input-label" for="settings-sheets">Google Sheets URL or ID</label>
+        <input type="text" id="settings-sheets" placeholder="Paste spreadsheet URL or ID">
+        <p class="settings-note">Saved on this device for future integration. Scores are not sent to Sheets yet.</p>
+        <div class="modal-btn-row">
+            <button class="modal-btn btn-cancel" onclick="closeSettingsModal()">Cancel</button>
+            <button class="modal-btn btn-confirm" onclick="saveSettings()">Save</button>
         </div>
     </div>
 
@@ -285,8 +418,8 @@
             <button class="kbtn" onclick="pk(7)">7</button>
             <button class="kbtn" onclick="pk(8)">8</button>
             <button class="kbtn" onclick="pk(9)">9</button>
-            <button class="kbtn x-btn" onclick="pX()">X</button>
             <button class="kbtn" onclick="pk(0)">0</button>
+            <button class="kbtn clear-btn" onclick="pClear()">CLEAR</button>
             <button class="kbtn ok-btn" onclick="pEnt()">ENTER</button>
         </div>
     </div>
@@ -320,6 +453,8 @@
 
     window.onload = () => {
         if(localStorage.getItem('yz_email')) document.getElementById('target-email').value = localStorage.getItem('yz_email');
+        document.getElementById('settings-sheets').value = localStorage.getItem('yz_sheets') || '';
+        applyTheme(localStorage.getItem('yz_theme') || 'light');
         if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
             document.getElementById('fs-btn').style.display = 'none';
         }
@@ -358,8 +493,8 @@
 
     function renderTable() {
         const t = document.getElementById('score-table');
-        let h = `<thead><tr><th style="z-index:11; background:#fff;"></th>`;
-        players.forEach(p => h += `<th>${p.name}</th>`);
+        let h = `<thead><tr><th style="z-index:11; background:var(--surface);"></th>`;
+        players.forEach(p => h += `<th class="player-heading">${p.name}</th>`);
         h += `</tr></thead><tbody>`;
 
         cats.forEach(c => {
@@ -396,7 +531,7 @@
                     
                     if(activePid===p.id && activeCat===c.id) cellCls += " active-cell";
                     
-                    h += `<td class="${cellCls}" onclick="openKeypad(${p.id}, '${c.id}')">${display}</td>`;
+                    h += `<td class="${cellCls}" data-score-cell="${p.id}-${c.id}" onclick="openKeypad(${p.id}, '${c.id}')">${display}</td>`;
                 }
             });
             h += `</tr>`;
@@ -442,7 +577,9 @@
         document.getElementById('kp-info').innerText = `${pName}: ${cName}`;
         document.getElementById('kp-preview').innerText = "";
         document.getElementById('keypad-backdrop').style.display='block';
-        setTimeout(()=>document.getElementById('keypad-panel').classList.add('open'), 10);
+        setTimeout(() => {
+            if(activePid !== null && activeCat !== null) document.getElementById('keypad-panel').classList.add('open');
+        }, 10);
     }
 
     function closeKeypad() {
@@ -451,12 +588,92 @@
         activePid=null; activeCat=null; renderTable();
     }
 
-    function pk(n) { if(buffer.length<3) { buffer+=n; updatePreview(buffer); } }
-    function pX() { if(buffer.length > 0) { buffer=""; updatePreview("Cleared"); } else { buffer="0"; updatePreview("/"); } }
-    function pEnt() {
-        let val = (buffer==="/" || buffer==="0") ? 0 : parseInt(buffer || "0");
-        scores[activePid][activeCat] = val;
+    function pk(n) {
+        if(buffer.length<3) { buffer+=n; updatePreview(buffer); }
+    }
+
+    function triggerConfetti() {
+        if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+        const colors = ['#e74c3c', '#f2c94c', '#27ae60', '#2980b9', '#61d39a', '#f7a8b8'];
+        const overlay = document.createElement('div');
+        overlay.className = 'confetti-overlay';
+        overlay.setAttribute('aria-hidden', 'true');
+
+        const burstText = document.createElement('div');
+        burstText.className = 'yahtzee-burst-text';
+        const letters = Array.from('YAHTZEE!');
+        const flightDuration = 3;
+        const gravity = window.innerHeight * 1.1;
+        letters.forEach((character, index) => {
+            const letter = document.createElement('span');
+            const angle = (Math.PI * 2 * index / letters.length) + (Math.random() - 0.5) * 0.45;
+            const speed = window.innerHeight * (0.8 + Math.random() * 0.3);
+            const velocityX = Math.cos(angle) * speed;
+            const velocityY = Math.sin(angle) * speed;
+            const spin = Math.round(Math.random() * 1440 - 720);
+            letter.className = 'yahtzee-burst-letter';
+            letter.textContent = character;
+            [0.55, 1.4, flightDuration].forEach((time, step) => {
+                const x = velocityX * time;
+                const y = velocityY * time + 0.5 * gravity * time * time;
+                const point = step + 1;
+                letter.style.setProperty(`--arc-x-${point}`, `${Math.round(x)}px`);
+                letter.style.setProperty(`--arc-y-${point}`, `${Math.round(y)}px`);
+                letter.style.setProperty(`--spin-${point}`, `${Math.round(spin * time / flightDuration)}deg`);
+            });
+            letter.style.setProperty('--letter-spin', `${spin}deg`);
+            burstText.appendChild(letter);
+        });
+        overlay.appendChild(burstText);
+
+        for(let i = 0; i < 110; i++) {
+            const piece = document.createElement('span');
+            piece.className = 'confetti-piece';
+            piece.style.left = `${Math.random() * 100}%`;
+            piece.style.setProperty('--confetti-color', colors[i % colors.length]);
+            piece.style.setProperty('--confetti-duration', `${3 + Math.random() * 1.1}s`);
+            piece.style.setProperty('--confetti-delay', `${Math.random() * 0.45}s`);
+            piece.style.setProperty('--confetti-drift', `${Math.round(Math.random() * 240 - 120)}px`);
+            piece.style.setProperty('--confetti-spin', `${Math.round(Math.random() * 1080 - 540)}deg`);
+            if(i % 3 === 0) piece.style.borderRadius = '50%';
+            overlay.appendChild(piece);
+        }
+
+        document.body.appendChild(overlay);
+        setTimeout(() => overlay.remove(), 4400);
+    }
+
+    document.addEventListener('keydown', event => {
+        if(activePid === null || activeCat === null) return;
+        if(event.target instanceof HTMLElement && event.target.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+        if(/^\d$/.test(event.key)) {
+            pk(Number(event.key));
+        } else if(event.key === ' ') {
+            event.preventDefault();
+            pClear();
+        } else if(event.key === 'Enter') {
+            event.preventDefault();
+            pEnt();
+        } else if(event.key === 'Escape') {
+            closeKeypad();
+        }
+    });
+
+    function pClear() {
+        if(activePid === null || activeCat === null) return;
+        delete scores[activePid][activeCat];
         closeKeypad();
+    }
+    function pEnt() {
+        if(activePid === null || activeCat === null) return;
+        const playerId = activePid;
+        const categoryId = activeCat;
+        let val = parseInt(buffer || "0");
+        scores[playerId][categoryId] = val;
+        closeKeypad();
+        if(categoryId === 'y' && val > 0) triggerConfetti();
     }
     function updatePreview(txt) { document.getElementById('kp-preview').innerText = txt; }
 
@@ -480,14 +697,7 @@
         }, 100);
     }
 
-    function sendEmail() {
-        let dateObj = gameInfo.startTime || new Date();
-        let dateStr = dateObj.toLocaleString('en-GB', { weekday: 'short', year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-        
-        let subject = "Yahtzee";
-        if (gameInfo.locationName) subject += `: ${gameInfo.locationName} - ${dateStr}`;
-        else subject += ` - ${dateStr}`;
-
+    function buildEmailBody(dateStr) {
         let body = `YAHTZEE REPORT\n${dateStr}\n`;
         if(gameInfo.locationName) body += `Loc: ${gameInfo.locationName}\n`;
         if(gameInfo.coords) body += `Map: https://maps.google.com/?q=${gameInfo.coords.lat},${gameInfo.coords.lon}\n`;
@@ -505,19 +715,100 @@
         players.forEach(p => {
             body += `[ ${p.name} ]\n`;
             cats.forEach(c => {
-                if(c.type !== 'calc') {
-                    let v = scores[p.id][c.id];
-                    let disp = (v===0) ? "/" : (v || "-");
-                    body += `${c.name}: ${disp}\n`;
+                let display;
+                if(c.type === 'calc') {
+                    const value = calcValue(p.id, c.id);
+                    display = c.id === 'par' ? (value > 0 ? `+${value}` : value < 0 ? `${value}` : 'E') : value;
+                } else {
+                    const value = scores[p.id][c.id];
+                    display = value === undefined ? '-' : value === 0 ? '/' : value;
                 }
+                body += `${c.name}: ${display}\n`;
             });
-            body += `TOTAL: ${calcValue(p.id, 'total')}\n\n`;
+            body += '\n';
         });
 
+        return body;
+    }
+
+    function sendEmail() {
+        let dateObj = gameInfo.startTime || new Date();
+        let dateStr = dateObj.toLocaleString('en-GB', { weekday: 'short', year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+        let subject = "Yahtzee";
+        if (gameInfo.locationName) subject += `: ${gameInfo.locationName} - ${dateStr}`;
+        else subject += ` - ${dateStr}`;
+
+        const body = buildEmailBody(dateStr);
         window.location.href = `mailto:${gameInfo.targetEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     }
 
-    function quickRestart() { startGame(); }
+    function quickRestart() {
+        const select = document.getElementById('restart-player');
+        select.replaceChildren();
+        players.forEach(player => {
+            const option = document.createElement('option');
+            option.value = player.id;
+            option.textContent = player.name;
+            select.appendChild(option);
+        });
+        if(players.length) select.value = players[0].id;
+        document.getElementById('confirm-backdrop').style.display = 'block';
+        document.getElementById('restart-modal').style.display = 'block';
+    }
+
+    function closeRestartModal() {
+        document.getElementById('confirm-backdrop').style.display = 'none';
+        document.getElementById('restart-modal').style.display = 'none';
+    }
+
+    function beginQuickRestart() {
+        const startId = Number(document.getElementById('restart-player').value);
+        const startIndex = players.findIndex(player => player.id === startId);
+        if(startIndex >= 0) players = players.slice(startIndex).concat(players.slice(0, startIndex));
+        closeRestartModal();
+        startGame();
+    }
+
+    function openSettingsModal() {
+        document.getElementById('settings-theme').value = localStorage.getItem('yz_theme') || 'light';
+        document.getElementById('settings-email').value = document.getElementById('target-email').value || localStorage.getItem('yz_email') || '';
+        document.getElementById('settings-sheets').value = localStorage.getItem('yz_sheets') || '';
+        document.getElementById('confirm-backdrop').style.display = 'block';
+        document.getElementById('settings-modal').style.display = 'block';
+    }
+
+    function closeSettingsModal() {
+        document.getElementById('confirm-backdrop').style.display = 'none';
+        document.getElementById('settings-modal').style.display = 'none';
+        applyTheme(localStorage.getItem('yz_theme') || 'light');
+    }
+
+    function previewTheme(theme) {
+        const allowedThemes = ['light', 'dark', 'forest'];
+        const selectedTheme = allowedThemes.includes(theme) ? theme : 'light';
+        if(selectedTheme === 'light') delete document.documentElement.dataset.theme;
+        else document.documentElement.dataset.theme = selectedTheme;
+        const themeSelect = document.getElementById('settings-theme');
+        if(themeSelect) themeSelect.value = selectedTheme;
+    }
+
+    function applyTheme(theme) {
+        previewTheme(theme);
+        localStorage.setItem('yz_theme', theme);
+    }
+
+    function saveSettings() {
+        const email = document.getElementById('settings-email').value.trim();
+        const sheets = document.getElementById('settings-sheets').value.trim();
+        document.getElementById('target-email').value = email;
+        gameInfo.targetEmail = email;
+        if(email) localStorage.setItem('yz_email', email);
+        else localStorage.removeItem('yz_email');
+        localStorage.setItem('yz_sheets', sheets);
+        applyTheme(document.getElementById('settings-theme').value);
+        closeSettingsModal();
+    }
 
     function fullReset() {
         showScreen('setup-screen');
