@@ -708,7 +708,7 @@
         if(gameInfo.locationName) body += `Loc: ${gameInfo.locationName}\n`;
         if(gameInfo.coords) body += `Map: https://maps.google.com/?q=${gameInfo.coords.lat},${gameInfo.coords.lon}\n`;
         
-        body += "\nFINAL SCORES\n";
+        body += "\n--- SCORES ---\n";
 
         let winner = {n:'', s:-1};
         players.forEach(p => {
@@ -716,28 +716,23 @@
             body += `${p.name}: ${tot}\n`;
             if(tot > winner.s) winner = {n:p.name, s:tot};
         });
-        body += `WINNER: ${winner.n}\n\nSCORE SHEET\n`;
+        body += `\nWINNER: ${winner.n}\n\n`;
 
-        const labelWidth = Math.max(...cats.map(category => category.name.length));
-        const playerWidth = Math.max(4, ...players.map(player => player.name.length));
-        const separator = `+${'-'.repeat(labelWidth + 2)}+${players.map(() => '-'.repeat(playerWidth + 2)).join('+')}+`;
-        const formatRow = (label, values) => `| ${label.padEnd(labelWidth)} | ${values.map(value => String(value).padStart(playerWidth)).join(' | ')} |`;
-
-        body += `${separator}\n`;
-        body += `${formatRow('Category', players.map(player => player.name))}\n`;
-        body += `${separator}\n`;
-        cats.forEach(category => {
-            const values = players.map(player => {
-                if(category.type === 'calc') {
-                    const value = calcValue(player.id, category.id);
-                    return category.id === 'par' ? (value > 0 ? `+${value}` : value < 0 ? `${value}` : 'E') : value;
+        players.forEach(p => {
+            body += `[ ${p.name} ]\n`;
+            cats.forEach(c => {
+                let display;
+                if(c.type === 'calc') {
+                    const value = calcValue(p.id, c.id);
+                    display = c.id === 'par' ? (value > 0 ? `+${value}` : value < 0 ? `${value}` : 'E') : value;
+                } else {
+                    const value = scores[p.id][c.id];
+                    display = value === undefined ? '-' : value === 0 ? '/' : value;
                 }
-                const value = scores[player.id][category.id];
-                return value === undefined ? '-' : value === 0 ? '/' : value;
+                body += `${c.name}: ${display}\n`;
             });
-            body += `${formatRow(category.name, values)}\n`;
+            body += '\n';
         });
-        body += separator + '\n';
 
         return body;
     }
