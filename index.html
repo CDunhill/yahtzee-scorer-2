@@ -270,6 +270,11 @@
             border-radius: 8px; background: var(--surface-soft); color: var(--text); font-size: 1rem;
         }
         .settings-note { color: var(--muted-text); font-size: 0.82rem; text-align: left; margin: -4px 0 14px; }
+        .btn-clear-game {
+            width: 100%; margin-top: 8px; padding: 12px; border: 1px solid var(--accent);
+            border-radius: 8px; background: transparent; color: var(--accent);
+            font-size: 0.95rem; font-weight: 700; cursor: pointer;
+        }
         
         .kp-header { display: flex; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); color: var(--muted-text); font-size: 0.9rem; }
         .kp-preview { font-size: 1.4rem; font-weight: bold; color: var(--blue); }
@@ -395,6 +400,7 @@
         <label class="input-label" for="settings-sheets">Google Sheets URL or ID</label>
         <input type="text" id="settings-sheets" placeholder="Paste spreadsheet URL or ID">
         <p class="settings-note">Saved on this device for future integration. Scores are not sent to Sheets yet.</p>
+        <button class="btn-clear-game" onclick="confirmClearGameReload()">Clear Game and Reload App</button>
         <div class="modal-btn-row">
             <button class="modal-btn btn-cancel" onclick="closeSettingsModal()">Cancel</button>
             <button class="modal-btn btn-confirm" onclick="saveSettings()">Save</button>
@@ -808,6 +814,11 @@
         localStorage.setItem('yz_sheets', sheets);
         applyTheme(document.getElementById('settings-theme').value);
         closeSettingsModal();
+    }
+
+    function confirmClearGameReload() {
+        const confirmed = window.confirm('Clear the current game and reload Yahtzee Scorer? Your saved settings will be kept.');
+        if(confirmed) window.location.reload();
     }
 
     function fullReset() {
