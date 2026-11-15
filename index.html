@@ -206,10 +206,10 @@
             100% { opacity: 0; transform: translate3d(var(--confetti-drift), 110vh, 0) rotate(var(--confetti-spin)); }
         }
         @keyframes yahtzee-letter-explode {
-            0% { opacity: 0; transform: scale(0) rotate(0deg); }
-            8% { opacity: 1; transform: scale(1.18) rotate(0deg); }
-            14% { opacity: 1; transform: scale(1) rotate(0deg); }
-            22% { opacity: 1; transform: scale(1.04) rotate(0deg); }
+            0% { opacity: 0; transform: translate3d(0, 0, 0) scale(0) rotate(0deg); }
+            8% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.18) rotate(0deg); }
+            14% { opacity: 1; transform: translate3d(0, 0, 0) scale(1) rotate(0deg); }
+            22% { opacity: 1; transform: translate3d(0, 0, 0) scale(1.04) rotate(0deg); }
             40% { opacity: 1; transform: translate3d(var(--arc-x-1), var(--arc-y-1), 0) scale(0.96) rotate(var(--spin-1)); }
             65% { opacity: 1; transform: translate3d(var(--arc-x-2), var(--arc-y-2), 0) scale(0.75) rotate(var(--spin-2)); }
             100% { opacity: 0; transform: translate3d(var(--arc-x-3), var(--arc-y-3), 0) scale(0.35) rotate(var(--letter-spin)); }
